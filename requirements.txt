@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+pydantic
+langchain
+langchain-core
+langgraph
+sentence-transformers
+qdrant-client
+requests
+python-dotenv
+transformers
+torch
+huggingface-hub
+langchain-huggingface
+tavily-python
