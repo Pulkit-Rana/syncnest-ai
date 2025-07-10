@@ -12,3 +12,5 @@ class ReasoningState(BaseModel):
     ado_context: Optional[List[Dict[str, Any]]] = None
     web_result: Optional[Any] = None
     bug_template: Optional[Dict[str, Any]] = None
+    last_entity: Optional[dict] = None
+    story_template: Optional[Dict[str, Any]] = None

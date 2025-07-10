@@ -1,3 +1,4 @@
+import logging
 from langchain_core.runnables import RunnableLambda
 from langchain_core.messages import SystemMessage, HumanMessage
 from agent.utils.llm_response import call_llm
@@ -6,25 +7,23 @@ from agent.types import ReasoningState
 from tavily import TavilyClient
 import os
 
+logger = logging.getLogger(__name__)
+
+# (Optional) Keywords to gently nudge if classifier missed a product question (paranoia catch)
+PRODUCT_TRIGGER_WORDS = [
+    "login", "dashboard", "feature", "app", "button", "upload", "ui", "form", "page", "account",
+    "profile", "report", "error", "issue", "workflow", "search", "submit", "reset", "settings"
+]
+
 def general_chat_node():
     def run(state: ReasoningState) -> ReasoningState:
         query = state.user_input.strip()
         history = state.history or ""
 
-        # 🔍 Keyword-based forced web search
-        search_triggers = [
-            "top news", "latest news", "trending", "headlines", "breaking news",
-            "today", "weather", "price of", "who won", "current events",
-            "capital of", "population", "stock price", "temperature"
-        ]
-
-        if state.type == "web_search" or any(keyword in query.lower() for keyword in search_triggers):
-            return run_web_search(state, query, fallback=True)
-
-        # 💬 Ask LLM using chat history
+        # 💬 System prompt for off-topic/casual chat
         system_prompt = (
-            "You are a smart and friendly assistant. Respond conversationally like a helpful human teammate.\n"
-            "You can use the full chat history. If you are unsure or don't know something, say: 'I don't know.'"
+            "You are a helpful, friendly assistant for general, non-product questions. "
+            "Respond conversationally and humanly. If you don't know something, say: 'I don't know.'"
         )
 
         messages = [
@@ -32,40 +31,44 @@ def general_chat_node():
             HumanMessage(content=f"Chat so far:\n{history}\n\nUser now asked:\n{query}")
         ]
 
-        answer = call_llm(messages)
+        try:
+            answer = call_llm(messages).strip()
+        except Exception as e:
+            logger.error(f"LLM call failed in general_chat_node: {e}")
+            answer = "Sorry, I'm having trouble thinking right now. Please try again!"
 
-        # 🤖 If LLM admits it doesn't know → fallback to search
-        if "i don't know" in answer.lower() or "not sure" in answer.lower():
-            return run_web_search(state, query, fallback=True)
+        # If LLM admits it doesn't know, fallback to web search
+        if not answer or "i don't know" in answer.lower() or "not sure" in answer.lower():
+            response = run_web_search(query)
+            state.intent = "web_search"
+            state.node = "web_search"
+        else:
+            # Optional: gentle nudge if the classifier let a product question slip through
+            if any(word in query.lower() for word in PRODUCT_TRIGGER_WORDS):
+                answer += (
+                    "\n\n(If this is about your app, workflow, or a feature, please rephrase or try again for more tailored help!)"
+                )
+            response = answer
+            state.intent = "general_chat"
+            state.node = "general_chat"
 
-        # ✅ LLM responded well
-        save_turn(query, answer)
-        state.response = answer
-        state.intent = "general_chat"
-        state.node = "general_chat"
+        save_turn(query, response)
+        state.response = response
         return state
 
     return RunnableLambda(run)
 
-# 🌐 Internet Search Fallback
-def run_web_search(state: ReasoningState, query: str, fallback: bool = False) -> ReasoningState:
+# 🌐 Internet Search Fallback (unchanged)
+def run_web_search(query: str) -> str:
     try:
         client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
         result = client.search(query=query, max_results=1)
         top = result["results"][0] if result.get("results") else None
-
         if top:
             snippet = top.get("answer") or top.get("content", "")
             url = top.get("url", "")
-            response = f"🔎 {snippet}\n(Source: {url})"
+            return f"🔎 {snippet}\n(Source: {url})"
         else:
-            response = "❓ I couldn’t find anything helpful online."
-
+            return "❓ I couldn’t find anything helpful online."
     except Exception as e:
-        response = f"⚠️ Web search failed: {str(e)}"
-
-    save_turn(state.user_input, response)
-    state.response = response
-    state.intent = "web_search"
-    state.node = "web_search"
-    return state
+        return f"⚠️ Web search failed: {str(e)}"

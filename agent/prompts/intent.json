@@ -1,0 +1,63 @@
+{
+  "greeting": [
+    "hi", "hello", "hey", "hiya", "hiya!", "yo", "sup", "namaste", "namastey", "hola", "bonjour", "salaam", "ciao",
+    "hey there", "good morning", "gm", "good afternoon", "good evening", "kaise ho", "kya haal hai", "kya scene hai",
+    "greetings", "hey buddy", "what's up", "whatsup", "yo bro", "good to see you", "long time no see", "what's good", "yo yo", "hey team",
+    "pleasant day", ":)", "👋"
+  ],
+  "farewell": [
+    "bye", "goodbye", "see you", "see ya", "laters", "later", "peace out", "take care",
+    "farewell", "talk to you later", "catch you later", "see you soon", "shubh ratri",
+    "milte hain phir", "ciao", "adios", "hasta luego", "good night", "gn", "have a great day",
+    "have a good one", "peace", "ttyl", "take it easy"
+  ],
+  "general_chat": [
+    "tell me a joke", "share a joke", "joke please", "fun fact", "did you know",
+    "how are you", "kya chal raha hai", "kuch interesting batao", "recommend something",
+    "any recommendations", "quote of the day", "motivate me", "inspire me",
+    "who are you", "what's your name", "tell me about yourself", "how's it going",
+    "kaunsi movie dekhni chahiye", "kya plan hai aaj ka", "recommend a song",
+    "how's your day", "what's new", "ask me anything", "spill the tea",
+    "any gossip", "random fact", "tell me something interesting", "story time",
+    "chat with me"
+  ],
+  "web_search": [
+    "search for", "search", "find", "lookup", "google", "bing", "yahoo", "duckduckgo",
+    "weather", "weather in", "news", "today", "latest", "top news", "trending",
+    "breaking news", "price of", "stock price", "bitcoin price", "crypto price",
+    "capital of", "population of", "translate", "define", "wiki", "wikipedia",
+    "map", "directions", "current time", "time in", "exchange rate",
+    "unit conversion", "score of", "who won", "youtube", "stackoverflow",
+    "github", "search docs", "search documentation"
+  ],
+  "product_question": [
+    "how to", "how do i", "kaise", "kyaise", "workflow", "flow", "step", "steps",
+    "configuration", "setting", "setup", "enable", "disable", "configure", "integration",
+    "API", "api call", "endpoint", "token", "auth", "authentication", "permission", "access",
+    "swagger", "swagger ui", "documentation", "docs", "error", "exception", "fails", "fail",
+    "not working", "nahi chal raha", "issue", "problem", "crash", "freeze", "slow", "lag",
+    "performance", "filter", "save", "delete", "login", "logout", "register", "signup",
+    "patient", "dashboard", "card", "UI", "UX", "user management", "profile",
+    "field", "button", "dropdown", "form", "modal", "popup", "page", "screen",
+    "layout", "theme", "dark mode", "light mode", "notification", "alert",
+    "email", "sms", "report", "analytics", "chart", "graph", "export",
+    "import", "print", "preview", "download", "backup", "restore", "migrate",
+    "upgrade", "cache", "session", "cookie", "logging", "audit", "sdk",
+    "debug", "logs", "monitoring", "alerting", "observability", "ci/cd",
+    "deployment", "pipelines", "rollback", "version", "update", "upgrade",
+    "downgrade", "compatibility", "license", "billing", "subscription", "plan",
+    "quota", "usage", "limits", "threshold"
+  ],
+  "bug_log": [
+    "log a bug", "file bug", "report bug", "register bug", "bug report", "bug log karo",
+    "issue log karo", "create a bug", "create story", "log story", "story",
+    "ticket", "ado", "work item", "defect", "severity", "priority",
+    "critical bug", "major bug", "minor bug", "low priority", "medium priority",
+    "high priority", "p1", "p2", "p3", "exception stack", "error message",
+    "UI glitch", "typo", "misalignment", "broken link", "404", "500 error",
+    "unhandled exception", "crash log", "buggy", "bug id", "issue report",
+    "reproduce", "steps to reproduce", "stack trace", "traceback", "backtrace",
+    "error code", "error log", "exception", "segment fault", "memory leak",
+    "race condition", "deadlock", "hang", "unexpected behavior"
+  ]
+}
