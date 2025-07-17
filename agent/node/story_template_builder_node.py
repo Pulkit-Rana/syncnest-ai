@@ -1,7 +1,7 @@
 import json
 import re
 import logging
-from langchain_core.runnables import RunnableLambda
+# from langchain_core.runnables import RunnableLambda
 from agent.utils.llm_response import call_llm
 from agent.types import ReasoningState
 from agent.vector.qdrant_client import search_similar
@@ -110,4 +110,4 @@ def story_template_builder_node():
         )
         return state
 
-    return RunnableLambda(handle)
+    return handle
