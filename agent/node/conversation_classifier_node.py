@@ -6,14 +6,13 @@ from agent.utils.llm_response import call_llm
 
 logger = logging.getLogger(__name__)
 
-# Strong, expanded confirmation keywords — case insensitive
 CONFIRM_KEYWORDS_STORY = [
     "log it", "submit", "submit story", "log story", "create story",
     "raise story", "file story", "raise ticket", "log ticket", "add as story",
     "make a story", "please file a story", "new story"
 ]
 CONFIRM_KEYWORDS_BUG = [
-    "log this bug", "submit bug", "raise bug", "confirm bug", "file bug", "add as bug",
+    "log it", "log this bug", "submit", "submit bug", "raise bug", "confirm bug", "file bug", "add as bug",
     "please file a bug", "new bug", "add this as a bug", "report this bug"
 ]
 
@@ -28,50 +27,7 @@ You are an elite AI intent classifier. Given the conversation so far and the lat
 - clarify (uncertain, ambiguous, or you need more info)
 
 ## Examples:
-
-Product Questions:
-- "Why does my dashboard not load?"
-- "How do I update my profile picture in the app?"
-- "My submit button is greyed out."
-- "What's the workflow to export reports?"
-- "Can you help me with app settings?"
-- "The search feature is broken."
-- "I keep getting an error message in the app."
-- "What is the status of that bug?"
-- "Did you log the last story?"
-- "Is this issue fixed?"
-
-Bug Logging:
-- "Log a bug for this error"
-- "Please report this as a bug"
-- "Can you add this as a bug?"
-- "I found a defect, please log it"
-- "File a bug ticket for me"
-- "Add this as a new bug"
-- "Create a bug for this issue"
-- "Please file a bug"
-
-Story Logging:
-- "I want to create a user story"
-- "Log this as a new story"
-- "Add a story for this feature"
-- "Can you make a story for this?"
-- "Please file a story"
-- "Create a new story"
-
-General Chat:
-- "Tell me a joke"
-- "What's the weather?"
-- "Who won the game yesterday?"
-- "How are you today?"
-
-Greeting:
-- "Hello"
-- "Hi"
-- "Hey"
-- "Good morning"
-- "Thank you"
-
+(Product Questions, Bug Logging, Story Logging, General Chat, Greeting...)
 ## Instructions:
 - If the user's message is about the app, its features, workflows, issues, bugs, or stories, or could be a follow-up (like "What is the status of that bug?"), **always prefer 'product_question'** if unsure.
 - Only use 'general_chat' if it's clearly NOT about the product or work context.
@@ -92,16 +48,17 @@ def conversation_classifier_node():
         user_input = state.user_input.strip().lower()
         state.node = "conversation_classifier"
 
-        # 🔁 Sticky intent for story/bug confirmation, aggressively expanded
-        if getattr(state, "story_template", None):
-            if any(k in user_input for k in CONFIRM_KEYWORDS_STORY):
-                state.intent = "story_log"
-                logger.info("🔥 Sticky story_log intent [confirmation detected]")
-                return state
+        # --- KEY PATCH: Sticky confirmation for bug takes priority ---
         if getattr(state, "bug_template", None):
             if any(k in user_input for k in CONFIRM_KEYWORDS_BUG):
                 state.intent = "bug_log"
                 logger.info("🔥 Sticky bug_log intent [confirmation detected]")
+                return state
+        # Sticky intent for story confirmation
+        if getattr(state, "story_template", None):
+            if any(k in user_input for k in CONFIRM_KEYWORDS_STORY):
+                state.intent = "story_log"
+                logger.info("🔥 Sticky story_log intent [confirmation detected]")
                 return state
 
         # ✅ Always format memory for the current session for context
@@ -127,13 +84,11 @@ def conversation_classifier_node():
         # Force aggressive product bias if uncertain (guarantees never misroutes to general_chat)
         if label not in allowed_labels:
             logger.warning(f"LLM gave unclear label '{label}', falling back to clarify/product_question fallback logic.")
-            # If prompt hints at product but label is unclear, prefer 'product_question'
             if any(w in user_input for w in ["login", "dashboard", "app", "feature", "button", "page", "story", "bug", "profile", "account", "report", "issue", "submit"]):
                 label = "product_question"
             else:
                 label = "clarify"
 
-        # If still clarify, send a user prompt for disambiguation
         if label == "clarify":
             state.intent = "clarify"
             state.response = (
