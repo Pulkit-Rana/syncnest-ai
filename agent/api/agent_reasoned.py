@@ -8,7 +8,7 @@ from agent.types import ReasoningState
 router = APIRouter()
 agent = build_graph()
 
-# In-memory state store keyed by session_id (for demo/dev only; swap for Redis in prod)
+# In-memory state store keyed by session_id
 _state_store: dict[str, dict] = {}
 
 class AgentRequest(BaseModel):
@@ -20,7 +20,7 @@ class AgentResponse(BaseModel):
     intent: str
     type: str
     node: str
-    context: list  # or specify List[dict] if always dict
+    context: list 
 
 @router.post("/reasoned", response_model=AgentResponse)
 async def run_agent_reasoning(request: AgentRequest):
@@ -43,7 +43,7 @@ async def run_agent_reasoning(request: AgentRequest):
             ado_context=None,
             web_result=None,
             bug_template=None,
-            story_template=None,  # <-- Don't forget this!
+            story_template=None, 
         )
 
     try:
@@ -52,14 +52,14 @@ async def run_agent_reasoning(request: AgentRequest):
             try:
                 result = ReasoningState(**result)
             except Exception as e:
-                print("🔥🔥🔥 FastAPI Result Parse Error:", e)
+                print(" FastAPI Result Parse Error:", e)
                 import traceback; traceback.print_exc()
                 raise HTTPException(
                     status_code=500,
                     detail=f"Internal agent error: Could not parse agent state ({e})."
                 )
     except Exception as e:
-        print("🔥🔥🔥 FastAPI Exception:", e)
+        print("FastAPI Exception:", e)
         import traceback; traceback.print_exc()
         raise HTTPException(
             status_code=500,

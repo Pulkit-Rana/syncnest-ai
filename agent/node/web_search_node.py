@@ -5,7 +5,7 @@ from agent.memory.memory import save_turn
 from agent.types import ReasoningState
 from tavily import TavilyClient
 import os
-
+ 
 def run_web_search(query: str) -> str:
     try:
         client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
@@ -16,9 +16,9 @@ def run_web_search(query: str) -> str:
             url = top.get("url", "")
             return f"🔎 {snippet}\n(Source: {url})"
         else:
-            return "❓ I couldn’t find anything helpful online."
+            return " I couldn’t find anything helpful online."
     except Exception as e:
-        return f"⚠️ Web search failed: {str(e)}"
+        return f" Web search failed: {str(e)}"
 
 def general_chat_node():
     def run(state: ReasoningState) -> ReasoningState:

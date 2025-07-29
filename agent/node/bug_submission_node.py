@@ -51,7 +51,7 @@ def bug_submission_node():
             client = ADOClient()
             result = client.create_work_item("Bug", fields)
             state.response = (
-                f"✅ Bug successfully logged in Azure DevOps!\n"
+                f" Bug successfully logged in Azure DevOps!\n"
                 f"• ID: {result.get('id')}\n"
                 f"• Title: {result.get('title')}\n"
                 f"• Link: {result.get('url') or 'N/A'}"
@@ -60,7 +60,7 @@ def bug_submission_node():
             logger.info(f"[BugSubmission] ADO create success: {result}")
         except Exception as e:
             state.response = (
-                "❌ Failed to submit the bug to ADO. Please try again later or contact support.\n"
+                "Failed to submit the bug to ADO. Please try again later or contact support.\n"
                 f"Error: {e}\n"
                 f"Bug details: {tpl}"
             )

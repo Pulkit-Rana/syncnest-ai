@@ -11,4 +11,4 @@ async def reset_conversation():
     Resets the conversation memory for the current session.
     """
     reset_memory()
-    return {"message": "✅ Memory has been cleared."}
+    return {"message": "Memory has been cleared."}

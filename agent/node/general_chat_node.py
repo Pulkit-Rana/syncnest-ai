@@ -15,12 +15,12 @@ PRODUCT_TRIGGER_WORDS = [
     "profile", "report", "error", "issue", "workflow", "search", "submit", "reset", "settings"
 ]
 
-def general_chat_node():
+def general_chat_node(): 
     def run(state: ReasoningState) -> ReasoningState:
         query = state.user_input.strip()
         history = state.history or ""
 
-        # 💬 System prompt for off-topic/casual chat
+        #  System prompt for off-topic/casual chat
         system_prompt = (
             "You are a helpful, friendly assistant for general, non-product questions. "
             "Respond conversationally and humanly. If you don't know something, say: 'I don't know.'"
@@ -58,7 +58,7 @@ def general_chat_node():
 
     return RunnableLambda(run)
 
-# 🌐 Internet Search Fallback (unchanged)
+#  Internet Search Fallback (unchanged)
 def run_web_search(query: str) -> str:
     try:
         client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
@@ -69,6 +69,6 @@ def run_web_search(query: str) -> str:
             url = top.get("url", "")
             return f"🔎 {snippet}\n(Source: {url})"
         else:
-            return "❓ I couldn’t find anything helpful online."
+            return " I couldn’t find anything helpful online."
     except Exception as e:
-        return f"⚠️ Web search failed: {str(e)}"
+        return f"Web search failed: {str(e)}"

@@ -11,7 +11,7 @@ CONFIRM_KEYWORDS_STORY = [
     "make a story", "please file a story", "new story"
 ]
 
-def story_submission_node():
+def story_submission_node(): 
     def handle(state: ReasoningState) -> ReasoningState:
         logger.info(f"[StorySubmission] called with intent='{state.intent}' | user_input='{state.user_input}'")
 
@@ -54,7 +54,7 @@ def story_submission_node():
             client = ADOClient()
             result = client.create_work_item("User Story", fields)
             state.response = (
-                f"✅ Story successfully logged in Azure DevOps!\n"
+                f"Story successfully logged in Azure DevOps!\n"
                 f"• ID: {result.get('id')}\n"
                 f"• Title: {result.get('title')}\n"
                 f"• Link: {result.get('url') or 'N/A'}"
@@ -63,7 +63,7 @@ def story_submission_node():
             logger.info(f"[StorySubmission] ADO create success: {result}")
         except Exception as e:
             state.response = (
-                "❌ Failed to submit the story to ADO. Please try again later or contact support.\n"
+                " Failed to submit the story to ADO. Please try again later or contact support.\n"
                 f"Error: {e}\n"
                 f"Story details: {tpl}"
             )

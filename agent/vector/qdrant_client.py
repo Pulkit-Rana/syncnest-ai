@@ -9,13 +9,13 @@ load_dotenv()
 
 COLLECTION_NAME = os.getenv("QDRANT_COLLECTION", "agent-knowledge")
 
-# ✅ Embedder setup
+#  Embedder setup
 model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
-# ✅ Qdrant (embedded mode; for prod server, use url=...)
+#  Qdrant (embedded mode; for prod server, use url=...)
 client = QdrantClient(path="./qdrant_db")
 
-# ✅ Create collection (if not exists)
+# Create collection (if not exists)
 def init_qdrant():
     if COLLECTION_NAME not in [c.name for c in client.get_collections().collections]:
         client.recreate_collection(
@@ -23,7 +23,7 @@ def init_qdrant():
             vectors_config=VectorParams(size=384, distance=Distance.COSINE),
         )
 
-# 🔥 Safely create Qdrant int ID from any metadata id (int or str)
+#  Safely create Qdrant int ID from any metadata id (int or str)
 def _make_int_id(meta_id, fallback_int):
     """
     If meta_id is int-like, use it.
@@ -37,7 +37,7 @@ def _make_int_id(meta_id, fallback_int):
         return int(h[:8], 16)
     # fallback_int only used if meta_id missing
 
-# ✅ Add documents (no overwrites, no UUID errors)
+#  Add documents (no overwrites, no UUID errors)
 def add_documents(docs: list[str], metadata_list: list[dict]):
     vectors = model.encode(docs).tolist()
     points = [
@@ -50,7 +50,7 @@ def add_documents(docs: list[str], metadata_list: list[dict]):
     ]
     client.upsert(collection_name=COLLECTION_NAME, points=points)
 
-# ✅ Query similar documents (semantic search)
+#  Query similar documents (semantic search)
 def search_similar(text: str, top_k: int = 3):
     query_vector = model.encode(text).tolist()
     hits = client.search(

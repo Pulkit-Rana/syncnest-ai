@@ -5,7 +5,7 @@ from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 
 load_dotenv()
 
-# ✅ Shared LLM endpoint
+#  Shared LLM endpoint
 _llm = ChatHuggingFace(
     llm=HuggingFaceEndpoint(
         repo_id=os.getenv("LLM_MODEL"),

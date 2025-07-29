@@ -78,7 +78,7 @@ def fetch_wiki_pages_fixed_bruteforce(max_pages=10):
     wikis_resp = requests.get(wikis_url, auth=AUTH, headers=HEADERS, timeout=10)
     print("WIKIS STATUS:", wikis_resp.status_code)
     print("WIKIS RESPONSE:", wikis_resp.json())
-    items = []
+    items = [] 
     if wikis_resp.status_code == 200:
         for wiki in wikis_resp.json().get("value", []):
             wiki_id = wiki.get("id")  # This is the GUID!
@@ -125,4 +125,4 @@ if __name__ == "__main__":
         if m["source"] == "wiki":
             print(f"WIKI META [{idx}]: {m}")
     add_documents(docs, meta)
-    print("✅ Semantic index complete!")
+    print(" Semantic index complete!")

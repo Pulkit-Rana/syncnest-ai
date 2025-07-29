@@ -1,5 +1,3 @@
-# agent/graph/base_graph.py
-
 import logging
 from langgraph.graph import StateGraph
 from agent.types import ReasoningState
@@ -53,7 +51,7 @@ def build_graph():
     # Entry point
     workflow.set_entry_point("classifier")
 
-    # Router logic — robust and observable
+    # Router logic 
     def route(state):
         logger.info(f"[Router] intent='{getattr(state, 'intent', None)}' | state={state}")
 

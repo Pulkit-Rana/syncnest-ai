@@ -4,7 +4,7 @@ from agent.types import ReasoningState
 from agent.memory.memory import format_memory_for_prompt
 from agent.utils.llm_response import call_llm
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__) 
 
 CONFIRM_KEYWORDS_STORY = [
     "log it", "submit", "submit story", "log story", "create story",
@@ -48,24 +48,23 @@ def conversation_classifier_node():
         user_input = state.user_input.strip().lower()
         state.node = "conversation_classifier"
 
-        # --- KEY PATCH: Sticky confirmation for bug takes priority ---
         if getattr(state, "bug_template", None):
             if any(k in user_input for k in CONFIRM_KEYWORDS_BUG):
                 state.intent = "bug_log"
-                logger.info("🔥 Sticky bug_log intent [confirmation detected]")
+                logger.info("Sticky bug_log intent [confirmation detected]")
                 return state
         # Sticky intent for story confirmation
         if getattr(state, "story_template", None):
             if any(k in user_input for k in CONFIRM_KEYWORDS_STORY):
                 state.intent = "story_log"
-                logger.info("🔥 Sticky story_log intent [confirmation detected]")
+                logger.info("Sticky story_log intent [confirmation detected]")
                 return state
 
-        # ✅ Always format memory for the current session for context
+        #  Always format memory for the current session for context
         session_id = getattr(state, "session_id", "default")
         history = format_memory_for_prompt(session_id)
 
-        # 🧠 Build LLM prompt and classify with bulletproof instruction and context
+        # Build LLM prompt and classify with bulletproof instruction and context
         prompt = INTENT_CLASSIFIER_PROMPT.format(
             history=history,
             user_input=state.user_input
@@ -94,12 +93,12 @@ def conversation_classifier_node():
             state.response = (
                 "Can you clarify your request? Are you asking about your product, reporting a bug, logging a user story, or just chatting?"
             )
-            logger.warning(f"🟡 Ambiguous intent: asking for clarification. user_input: '{user_input}'")
+            logger.warning(f" Ambiguous intent: asking for clarification. user_input: '{user_input}'")
             return state
 
         # Final intent set and debug log for traceability
         state.intent = label
-        logger.info(f"🟢 Final classified intent: {state.intent} | user_input: '{state.user_input}' | node: '{state.node}'")
+        logger.info(f" Final classified intent: {state.intent} | user_input: '{state.user_input}' | node: '{state.node}'")
         return state
 
     return RunnableLambda(classify)

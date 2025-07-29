@@ -2,7 +2,6 @@ from langchain.memory import ConversationBufferMemory
 from langchain_core.messages import HumanMessage, AIMessage
 from typing import List, Union
 
-# 🚀 In-memory store for all sessions (keyed by session_id)
 _memory_store: dict[str, ConversationBufferMemory] = {}
 
 def get_memory(session_id: str = "default") -> ConversationBufferMemory:
@@ -44,3 +43,4 @@ def format_memory_for_prompt(session_id: str = "default") -> str:
         if content:
             lines.append(f"{role}: {content}")
     return "\n".join(lines).strip()
+ 
