@@ -5,7 +5,7 @@ from agent.memory.memory import save_turn
 from agent.types import ReasoningState
 from tavily import TavilyClient
 import os
- 
+
 def run_web_search(query: str) -> str:
     try:
         client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
@@ -25,7 +25,8 @@ def general_chat_node():
         query = state.user_input.strip()
         history = state.history or ""
 
-        # System prompt for LLM chat
+        state.thought = "Preparing system prompt for general chat."
+
         system_prompt = (
             "You are a smart and friendly assistant. Respond conversationally like a helpful human teammate.\n"
             "You can use the full chat history. If you are unsure or don't know something, say: 'I don't know.'"
@@ -36,16 +37,25 @@ def general_chat_node():
             HumanMessage(content=f"Chat so far:\n{history}\n\nUser now asked:\n{query}")
         ]
 
-        answer = call_llm(messages).strip()
+        try:
+            state.thought = "Calling LLM for general chat response."
+            answer = call_llm(messages).strip()
+            state.thought = f"LLM response received: {answer[:50]}..."
+        except Exception as e:
+            state.thought = f"LLM call failed with error: {e}"
+            answer = "Sorry, I'm having trouble thinking right now. Please try again!"
 
-        # Fallback logic: If LLM can't answer, try web search
         if not answer or "i don't know" in answer.lower() or "not sure" in answer.lower():
+            state.thought = "LLM uncertain, falling back to web search."
             response = run_web_search(query)
-            # You may also want to set state.intent = "web_search" here for audit trail:
             state.intent = "web_search"
+            state.node = "web_search"
         else:
             response = answer
             state.intent = "general_chat"
+            state.node = "general_chat"
+            if any(word in query.lower() for word in ["login", "dashboard", "app", "feature", "button", "page", "story", "bug"]):
+                state.thought = "Detected product-related keywords in general chat input."
 
         save_turn(query, response)
         state.response = response

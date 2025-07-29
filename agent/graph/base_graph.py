@@ -24,6 +24,16 @@ from agent.node.bug_submission_node import bug_submission_node
 from agent.node.story_template_builder_node import story_template_builder_node
 from agent.node.story_submission_node import story_submission_node
 
+# --- Fallback node (add this node to your agent.node package if not present) ---
+def fallback_node():
+    def node(state: ReasoningState):
+        state.response = (
+            "Sorry, I didn’t understand that. "
+            "Can you rephrase or specify your question?"
+        )
+        return state
+    return node
+
 logger = logging.getLogger(__name__)
 
 def build_graph():
@@ -48,10 +58,13 @@ def build_graph():
     workflow.add_node("story_template_builder", story_template_builder_node())
     workflow.add_node("story_submission", story_submission_node())
 
+    # Fallback node
+    workflow.add_node("fallback", fallback_node())
+
     # Entry point
     workflow.set_entry_point("classifier")
 
-    # Router logic 
+    # Router logic (hardened)
     def route(state):
         logger.info(f"[Router] intent='{getattr(state, 'intent', None)}' | state={state}")
 
@@ -82,9 +95,9 @@ def build_graph():
             logger.info(f"[Router] Routing to {mapping[state.intent]}")
             return mapping[state.intent]
 
-        # Defensive: crash fast if intent is unknown
-        logger.error(f"[Router] Unknown intent: {state.intent}. Failing hard.")
-        raise Exception(f"Unknown intent: {state.intent}")
+        # Robust fallback: route unknown/ambiguous intents to fallback node
+        logger.warning(f"[Router] Unknown or ambiguous intent: {state.intent}. Routing to fallback node.")
+        return "fallback"
 
     workflow.add_conditional_edges("classifier", route)
     return workflow.compile()

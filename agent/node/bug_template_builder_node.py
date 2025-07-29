@@ -21,9 +21,11 @@ def bug_template_builder_node():
         user_desc = state.user_input.strip()
         user_reply = user_desc.lower()
 
+        state.thought = "Checking if user wants details on last similar bug."
         # 1. YES/DETAILS on last_entity
         if any(kw in user_reply for kw in YES_KEYWORDS) and getattr(state, "last_entity", None):
             entity = state.last_entity
+            state.thought = f"Providing details for last similar bug: {entity.get('title', '')}"
             state.response = (
                 f"Here are the details for the similar bug:\n"
                 f"• Title: {entity.get('title', '')}\n"
@@ -34,6 +36,7 @@ def bug_template_builder_node():
             )
             return state
 
+        state.thought = "Searching for similar bugs in vector database."
         # 2. Search for similar bugs
         similar = search_similar(user_desc, top_k=5)
         if similar:
@@ -41,6 +44,7 @@ def bug_template_builder_node():
                 sim = item.get("similarity", 0)
                 title_match = item.get("title", "").lower() in user_desc.lower()
                 if sim >= 0.93 or title_match:
+                    state.thought = f"Found similar bug: {item.get('title', '')} with similarity {sim:.2f}"
                     state.last_entity = item
                     state.response = (
                         f"It looks like a similar bug already exists:\n"
@@ -51,6 +55,7 @@ def bug_template_builder_node():
                     )
                     return state
 
+        state.thought = "Generating new bug report template using LLM."
         # 3. Build new bug template using LLM
         prompt = (
             "You are an expert QA engineer. Given the user's description, generate a clear, actionable bug report template in JSON. "
@@ -84,6 +89,7 @@ def bug_template_builder_node():
                         result_json[k] = val
                 state.bug_template = result_json
                 pretty = json.dumps(result_json, indent=2)
+                state.thought = "Successfully generated bug template JSON."
                 state.response = (
                     "Here’s your auto-generated **bug template**. "
                     "**Reply 'log it' to submit as a bug**, or reply with any edits to update the template. "
@@ -93,6 +99,7 @@ def bug_template_builder_node():
                 return state
             except Exception as e:
                 logger.error(f"BugTemplateBuilder JSON parse failed: {e} | Output was: {result_str}")
+                state.thought = "Failed to parse JSON from LLM response; retrying with stricter prompt."
                 # Retry with a stricter prompt
                 result_str = call_llm(
                     "Return only valid JSON for the previous bug template request. "
@@ -100,6 +107,7 @@ def bug_template_builder_node():
                     "Use allowed default values for missing fields: priority=2, severity='3 - Medium', repro_steps='No steps provided'."
                 ).strip()
 
+        state.thought = "Failed to generate valid bug template after retries."
         state.bug_template = None
         state.response = (
             "Sorry, I couldn't auto-generate a bug report from your description right now. "
@@ -110,3 +118,4 @@ def bug_template_builder_node():
         return state
 
     return RunnableLambda(handle)
+

@@ -21,9 +21,11 @@ def story_template_builder_node():
         user_desc = state.user_input.strip()
         user_reply = user_desc.lower()
 
+        state.thought = "Checking if user wants details on last similar story..."
         # === 1. YES/DETAILS/SHOW on last_entity ===
         if any(kw in user_reply for kw in YES_KEYWORDS) and getattr(state, "last_entity", None):
             entity = state.last_entity
+            state.thought = f"Providing details for last similar story: {entity.get('title', '')}"
             state.response = (
                 f"Here are the details for the similar story:\n"
                 f"• Title: {entity.get('title', '')}\n"
@@ -34,14 +36,15 @@ def story_template_builder_node():
             )
             return state
 
+        state.thought = "Searching for similar stories in vector database..."
         # --- 2. Search for similar stories ---
         similar = search_similar(user_desc, top_k=5)
         if similar:
             for item in similar:
-                # Stricter similarity threshold to avoid false positives
                 sim = item.get("similarity", 0)
                 title_match = item.get("title", "").lower() in user_desc.lower()
                 if sim >= 0.93 or title_match:
+                    state.thought = f"Found similar story: {item.get('title', '')} with similarity {sim:.2f}"
                     state.last_entity = item
                     state.response = (
                         f"It looks like a similar story already exists:\n"
@@ -52,6 +55,7 @@ def story_template_builder_node():
                     )
                     return state
 
+        state.thought = "No similar stories found; generating new story template using LLM..."
         # --- 3. If not, build new story template using LLM ---
         prompt = (
             "You are an expert product manager. Given the user's description, generate a clear, actionable user story template in JSON. "
@@ -86,6 +90,7 @@ def story_template_builder_node():
                         result_json[k] = val
                 state.story_template = result_json
                 pretty = json.dumps(result_json, indent=2)
+                state.thought = "Successfully generated story template JSON."
                 state.response = (
                     "Here’s your auto-generated **story template**. "
                     "**Reply 'log it' to submit as a story**, or reply with any edits to update the template. "
@@ -95,6 +100,7 @@ def story_template_builder_node():
                 return state
             except Exception as e:
                 logger.error(f"StoryTemplateBuilder JSON parse failed: {e} | Output was: {result_str}")
+                state.thought = "Failed to parse JSON from LLM response; retrying with stricter prompt."
                 # Retry with a stricter prompt
                 result_str = call_llm(
                     "Return only valid JSON for the previous story template request. "
@@ -102,12 +108,14 @@ def story_template_builder_node():
                     "Use allowed default values: acceptance_criteria='N/A', story_points=1."
                 ).strip()
 
+        state.thought = "Failed to generate valid story template after retries."
         state.story_template = None
         state.response = (
             "Sorry, I couldn't auto-generate a story from your description right now. "
             "Would you like to provide the story fields directly instead?\n\n"
             "**Title:**\n**Description:**\n**Acceptance Criteria:**\n**Story Points:**"
         )
-        return state
+        return state 
 
     return handle
+ 

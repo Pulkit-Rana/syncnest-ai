@@ -1,20 +1,20 @@
 import os
-from langchain_core.runnables import RunnableLambda
 from agent.utils.llm_response import call_llm
 from agent.types import ReasoningState
 from agent.vector.ado_client import ADOClient
 from agent.vector.qdrant_client import search_similar
 
 YES_KEYWORDS = [
-    "yes", "show me", "details", "see it", "more info", "see details", "show details", "yep", "of course", "log", "log it", "please log", "create bug", "file bug", "new bug", "add bug"
+    "yes", "show me", "details", "see it", "more info", "see details",
+    "show details", "yep", "of course", "log", "log it", "please log",
+    "create bug", "file bug", "new bug", "add bug"
 ]
 BUG_KEYWORDS = ["bug", "issue", "defect", "error", "not working", "fail", "unable"]
 STORY_KEYWORDS = ["story", "feature", "enhancement", "request"]
-
 SIMILARITY_THRESHOLD = 0.93
 
 def product_question_node():
-    def handle(state: ReasoningState) -> ReasoningState:
+    def handle(state: ReasoningState):
         user_input = state.user_input.strip()
         history = state.history or ""
         user_reply = user_input.lower()
@@ -22,6 +22,8 @@ def product_question_node():
 
         # 1. YES/DETAILS follow-up for last_entity
         if any(kw in user_reply for kw in YES_KEYWORDS) and session_last:
+            state.thought = f"User requested details for previous entity: {session_last.get('title', '')}."
+            yield ReasoningState(**state.model_dump())
             entity = session_last
             state.node = "product_question"
             state.intent = "product_question"
@@ -32,9 +34,12 @@ def product_question_node():
                 f"Description: {entity.get('description', '') or 'No further description available.'}\n"
                 "Would you like to log a new bug or story about this, update it, or ask something else?"
             )
-            return state
+            yield ReasoningState(**state.model_dump())
+            return
 
         # 2. Strong vector match
+        state.thought = "Searching vector DB for similar work items..."
+        yield ReasoningState(**state.model_dump())
         semantic_results = search_similar(user_input, top_k=5)
         state.ado_context = semantic_results if isinstance(semantic_results, list) else []
         most_similar = None
@@ -49,6 +54,8 @@ def product_question_node():
                     break
 
         if most_similar:
+            state.thought = f"Found a strong vector match: {most_similar.get('title', '')} (ID: {most_similar.get('id', '')})"
+            yield ReasoningState(**state.model_dump())
             state.last_entity = most_similar
             state.node = "product_question"
             title = most_similar.get("title", "")
@@ -62,15 +69,17 @@ def product_question_node():
                 f"• ID: {entity_id}\n"
                 "Would you like to see more details, update this, or log a new one anyway?"
             )
-            return state
+            yield ReasoningState(**state.model_dump())
+            return
 
         # 3. ADO keyword match (strict)
+        state.thought = "No strong vector match. Searching Azure DevOps by keywords..."
+        yield ReasoningState(**state.model_dump())
         ADO_ORG = os.environ.get("ADO_ORGANIZATION")
         ADO_PROJECT = os.environ.get("ADO_PROJECT")
         ADO_PAT = os.environ.get("ADO_PAT")
         ado_client = ADOClient(ADO_ORG, ADO_PROJECT, ADO_PAT)
         ado_results = ado_client.search_stories(user_input, top_k=5)
-        # PATCH: flatten ado_context as a list
         if ado_results and isinstance(ado_results, dict):
             combined = []
             for k in ['stories', 'bugs', 'features', 'wikis']:
@@ -78,6 +87,7 @@ def product_question_node():
             state.ado_context = combined
         else:
             state.ado_context = []
+
         found_match = None
         for item in state.ado_context:
             title_words = set(w.lower() for w in item.get("title", "").split())
@@ -85,6 +95,8 @@ def product_question_node():
                 found_match = item
                 break
         if found_match:
+            state.thought = f"Found keyword match in Azure DevOps: {found_match.get('title', '')} (ID: {found_match.get('id', '')})"
+            yield ReasoningState(**state.model_dump())
             state.last_entity = found_match
             state.node = "product_question"
             title = found_match.get("title", "")
@@ -98,9 +110,12 @@ def product_question_node():
                 f"• ID: {entity_id}\n"
                 "Would you like to see more details, update this, or log a new one anyway?"
             )
-            return state
+            yield ReasoningState(**state.model_dump())
+            return
 
         # 4. No match found: offer to log as bug/story, or answer with LLM using context if any exists
+        state.thought = "No existing matches found. Preparing LLM prompt with available context..."
+        yield ReasoningState(**state.model_dump())
         is_bug = any(kw in user_reply for kw in BUG_KEYWORDS)
         is_story = any(kw in user_reply for kw in STORY_KEYWORDS)
         context_blocks = []
@@ -121,7 +136,6 @@ def product_question_node():
                 context_blocks.append(block)
         semantic_context = "\n\n".join(context_blocks) or "No relevant work items, bugs, stories, or wiki pages were found."
 
-        # LLM prompt
         prompt = (
             "You are a highly skilled, empathetic AI product specialist for this web application. "
             "Use the CONTEXT to answer user questions or requests, or offer to log a new bug/story if nothing relevant is found.\n"
@@ -131,23 +145,26 @@ def product_question_node():
             f"---\nCONTEXT:\n{semantic_context}\n---"
         )
 
-        answer = call_llm(prompt)
+        state.thought = "Invoking LLM for product Q&A..."
+        yield ReasoningState(**state.model_dump())
         state.node = "product_question"
 
-        if answer and answer.strip() and "not found" not in answer.lower():
-            state.response = (
-                answer.strip() +
-                ("\n\nWould you like me to log this as a bug?" if is_bug else "") +
-                ("\n\nWould you like me to log this as a user story?" if is_story else "") +
-                ("\n\nOr would you like to clarify, edit, or ask something else?")
-            )
-            return state
+        # ---- STREAMING LLM RESPONSE -----
+        answer_lines = []
+        for line in call_llm(prompt, stream=True):  # <-- Must support streaming, see below
+            state.thought = line
+            answer_lines.append(line)
+            yield ReasoningState(**state.model_dump())
 
+        state.thought = None
+        answer = "".join(answer_lines)
         state.response = (
-            "I couldn't find any relevant existing bugs, stories, or docs for your request.\n"
-            "Would you like to log this as a new bug or story? If yes, just say 'log bug' or 'log story' and I'll build a template for you."
+            answer.strip() +
+            ("\n\nWould you like me to log this as a bug?" if is_bug else "") +
+            ("\n\nWould you like me to log this as a user story?" if is_story else "") +
+            ("\n\nOr would you like to clarify, edit, or ask something else?")
         )
-        state.intent = "clarify"
-        return state
+        yield ReasoningState(**state.model_dump())
+        return
 
-    return RunnableLambda(handle)
+    return handle  # NOT RunnableLambda!

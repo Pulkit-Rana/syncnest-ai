@@ -14,20 +14,24 @@ CONFIRM_KEYWORDS_STORY = [
 def story_submission_node(): 
     def handle(state: ReasoningState) -> ReasoningState:
         logger.info(f"[StorySubmission] called with intent='{state.intent}' | user_input='{state.user_input}'")
+        state.thought = "Starting story submission process."
 
         # Only allow for correct intent and present template
         if state.intent != "story_log" or not state.story_template:
             logger.warning(f"[StorySubmission] Invalid state: intent={state.intent}, story_template={state.story_template}")
+            state.thought = "Invalid state for story submission: either intent mismatch or missing template."
             return state
 
         user_reply = state.user_input.strip().lower()
         if not any(k in user_reply for k in CONFIRM_KEYWORDS_STORY):
             logger.info("[StorySubmission] No submit confirmation found in user reply.")
+            state.thought = "Waiting for user confirmation to submit the story."
             state.response = (
                 "To submit this story, please confirm by saying something like 'log it' or 'submit story'."
             )
             return state
 
+        state.thought = "User confirmed submission. Preparing data for Azure DevOps."
         state.node = "story_submission_node"
         tpl = state.story_template or {}
 
@@ -53,6 +57,7 @@ def story_submission_node():
         try:
             client = ADOClient()
             result = client.create_work_item("User Story", fields)
+            state.thought = "Story successfully created in Azure DevOps."
             state.response = (
                 f"Story successfully logged in Azure DevOps!\n"
                 f"• ID: {result.get('id')}\n"
@@ -62,8 +67,9 @@ def story_submission_node():
             state.story_template = None  # Clear for next session!
             logger.info(f"[StorySubmission] ADO create success: {result}")
         except Exception as e:
+            state.thought = "Failed to submit story to Azure DevOps."
             state.response = (
-                " Failed to submit the story to ADO. Please try again later or contact support.\n"
+                "Failed to submit the story to ADO. Please try again later or contact support.\n"
                 f"Error: {e}\n"
                 f"Story details: {tpl}"
             )

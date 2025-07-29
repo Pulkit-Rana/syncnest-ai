@@ -13,18 +13,23 @@ CONFIRM_KEYWORDS_BUG = [
 
 def bug_submission_node():
     def handle(state: ReasoningState) -> ReasoningState:
+        state.thought = "Starting bug submission node."
+
         if state.intent != "bug_log" or not state.bug_template:
             logger.warning(f"[BugSubmission] Invalid state: intent={state.intent}, bug_template={state.bug_template}")
+            state.thought = "Invalid state for bug submission: missing bug template or intent mismatch."
             return state
 
         user_reply = state.user_input.strip().lower()
         if not any(k in user_reply for k in CONFIRM_KEYWORDS_BUG):
             logger.info("[BugSubmission] No submit confirmation found in user reply.")
+            state.thought = "Waiting for user confirmation to submit the bug."
             state.response = (
                 "To submit this bug, please confirm by saying something like 'log it' or 'submit bug'."
             )
             return state
 
+        state.thought = "User confirmed bug submission. Preparing Azure DevOps payload."
         state.node = "bug_submission_node"
         tpl = state.bug_template or {}
 
@@ -50,8 +55,9 @@ def bug_submission_node():
         try:
             client = ADOClient()
             result = client.create_work_item("Bug", fields)
+            state.thought = "Bug successfully logged in Azure DevOps."
             state.response = (
-                f" Bug successfully logged in Azure DevOps!\n"
+                f"Bug successfully logged in Azure DevOps!\n"
                 f"• ID: {result.get('id')}\n"
                 f"• Title: {result.get('title')}\n"
                 f"• Link: {result.get('url') or 'N/A'}"
@@ -59,6 +65,7 @@ def bug_submission_node():
             state.bug_template = None
             logger.info(f"[BugSubmission] ADO create success: {result}")
         except Exception as e:
+            state.thought = "Failed to submit bug to Azure DevOps."
             state.response = (
                 "Failed to submit the bug to ADO. Please try again later or contact support.\n"
                 f"Error: {e}\n"

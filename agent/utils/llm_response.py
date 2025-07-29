@@ -5,20 +5,22 @@ from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 
 load_dotenv()
 
-#  Shared LLM endpoint
-_llm = ChatHuggingFace(
-    llm=HuggingFaceEndpoint(
-        repo_id=os.getenv("LLM_MODEL"),
-        token=os.getenv("HUGGINGFACEHUB_API_TOKEN"),
-        task="text-generation",
-        temperature=0.5,
-        max_new_tokens=256,
-    )
+# Create endpoint and model instances (token automatically picked from env var)
+llm = HuggingFaceEndpoint(
+    repo_id=os.getenv("LLM_MODEL"),
+    task="text-generation"
 )
+model = ChatHuggingFace(llm=llm)
 
-def call_llm(user_input) -> str:
+def call_llm(messages, stream=False):
     """
-    Takes a list of formatted ChatMessages (e.g., from ChatPromptTemplate).
-    Returns cleaned response.
+    messages: List of ChatMessages (e.g., HumanMessage, SystemMessage).
+    Returns LLM response content as string, or yields tokens if stream=True.
     """
-    return _llm.invoke(user_input).content.strip()
+    if not stream:
+        response = model.invoke(messages)
+        return response.content.strip()
+    else:
+        for chunk in model.stream(messages):
+            yield chunk.content 
+
